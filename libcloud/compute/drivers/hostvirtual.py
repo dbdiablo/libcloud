@@ -150,8 +150,12 @@ class HostVirtualNodeDriver(NodeDriver):
             raise HostVirtualException(
                 500, "Name should be a valid FQDN (e.g, hostname.example.com)")
 
-        # simply order a package first
-        pkg = self.ex_order_package(size)
+        result = []
+        if 'mbpkgid' in kwargs:
+            result['id'] = kwargs['mbpkgid']
+        else:
+            # simply order a package first
+            pkg = self.ex_order_package(size)
 
         if 'location' in kwargs:
             dc = kwargs['location'].id
