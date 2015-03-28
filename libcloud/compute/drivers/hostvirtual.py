@@ -39,12 +39,14 @@ API_ROOT = ''
 NODE_STATE_MAP = {
     'BUILDING': NodeState.PENDING,
     'PENDING': NodeState.PENDING,
-    'RUNNING': NodeState.RUNNING,  # server is powered up
     'STOPPING': NodeState.REBOOTING,
     'REBOOTING': NodeState.REBOOTING,
     'STARTING': NodeState.REBOOTING,
+    'RUNNING': NodeState.RUNNING,  # server is powered up
     'TERMINATED': NodeState.TERMINATED,  # server is powered down
-    'STOPPED': NodeState.STOPPED
+    'STOPPED': NodeState.STOPPED,
+    'UP': NodeState.RUNNING,
+    'DOWN': NodeState.STOPPED
 }
 
 DEFAULT_NODE_LOCATION_ID = 21
@@ -214,7 +216,8 @@ class HostVirtualNodeDriver(NodeDriver):
             return []
         pkgs = []
         for value in result:
-            pkgs.append(value)
+            pkg = self._to_pkg(value)
+            pkgs.append(pkg)
         return pkgs
 
     def ex_order_package(self, size):
@@ -345,11 +348,16 @@ class HostVirtualNodeDriver(NodeDriver):
         else:
             image = node.extra['image']
 
+        force = ''
+        if 'force' in kwargs:
+            force = kwargs['force']
+
         params = {
             'mbpkgid': node.id,
-            'image': image,
+            'image': image.id,
             'fqdn': node.name,
             'location': node.extra['location'],
+            'force': force
         }
 
         auth = kwargs['auth']
@@ -373,7 +381,7 @@ class HostVirtualNodeDriver(NodeDriver):
                                              method='POST').object
             return bool(result)
         except HostVirtualException:
-            self.ex_cancel_package(node)
+            return False
 
     def ex_delete_node(self, node):
         """
@@ -391,6 +399,36 @@ class HostVirtualNodeDriver(NodeDriver):
             method='POST').object
 
         return bool(result)
+
+    def _to_pkg(self, data):
+        if 'state' in data:
+            if data['state'] is None:
+                state = NODE_STATE_MAP['DOWN']
+            else:
+                state = NODE_STATE_MAP[data['state']]
+        else:
+            state = NODE_STATE_MAP['STOPPED']
+        public_ips = []
+        private_ips = []
+        extra = {}
+
+        if 'plan_id' in data:
+            extra['size'] = data['plan_id']
+        if 'name' in data:
+            extra['package'] = data['name']
+        if 'os_id' in data:
+            extra['image'] = data['os_id']
+        if 'fqdn' in data:
+            extra['fqdn'] = data['fqdn']
+        if 'location_id' in data:
+            extra['location'] = data['location_id']
+        if 'ip' in data:
+            public_ips.append(data['ip'])
+
+        node = Node(id=data['mbpkgid'], name=data['fqdn'], state=state,
+                    public_ips=public_ips, private_ips=private_ips,
+                    driver=self.connection.driver, extra=extra)
+        return node
 
     def _to_node(self, data):
         state = NODE_STATE_MAP[data['status']]
