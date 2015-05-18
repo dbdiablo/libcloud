@@ -265,11 +265,19 @@ class HostVirtualNodeDriver(NodeDriver):
         """
 
         params = {'mbpkgid': node.id}
-        result = self.connection.request(API_ROOT + '/cloud/unlink/',
-                                         data=json.dumps(params),
-                                         method='POST').object
+        result = self.connection.request(
+            API_ROOT + '/cloud/unlink', params=params).object
 
         return result
+
+    def ex_netreconfig_node(self, node):
+
+        params = {'mbpkgid': node.id}
+        result = self.connection.request(API_ROOT +
+                                         '/cloud/server/reconfig_network',
+                                         data=json.dumps(params),
+                                         method='POST').object
+        return bool(result)
 
     def ex_get_node(self, node_id):
         """
@@ -315,7 +323,7 @@ class HostVirtualNodeDriver(NodeDriver):
         """
         params = {'mbpkgid': node.id}
         result = self.connection.request(
-            API_ROOT + '/cloud/server/start',
+            API_ROOT + '/cloud/server/start/' + node.id,
             data=json.dumps(params),
             method='POST').object
 
@@ -420,8 +428,8 @@ class HostVirtualNodeDriver(NodeDriver):
             extra['image'] = data['os_id']
         if 'fqdn' in data:
             extra['fqdn'] = data['fqdn']
-        if 'location_id' in data:
-            extra['location'] = data['location_id']
+        if 'city' in data:
+            extra['city'] = data['city']
         if 'ip' in data:
             public_ips.append(data['ip'])
 
@@ -446,6 +454,7 @@ class HostVirtualNodeDriver(NodeDriver):
             extra['location'] = data['location_id']
         if 'ip' in data:
             public_ips.append(data['ip'])
+        extra['data'] = data
 
         node = Node(id=data['mbpkgid'], name=data['fqdn'], state=state,
                     public_ips=public_ips, private_ips=private_ips,
