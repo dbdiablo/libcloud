@@ -19,6 +19,7 @@ import binascii
 
 
 __all__ = [
+    'find',
     'get_driver',
     'set_driver',
     'merge_valid_keys',
@@ -27,8 +28,15 @@ __all__ = [
     'dict2str',
     'reverse_dict',
     'lowercase_keys',
-    'get_secure_random_string'
+    'get_secure_random_string',
+
+    'ReprMixin'
 ]
+
+
+def find(l, predicate):
+    results = [x for x in l if predicate(x)]
+    return results[0] if len(results) > 0 else None
 
 
 def get_driver(drivers, provider):
@@ -252,3 +260,25 @@ def get_secure_random_string(size):
     value = binascii.hexlify(value)
     value = value.decode('utf-8')[:size]
     return value
+
+
+class ReprMixin(object):
+    """
+    Mixin class which adds __repr__ and __str__ methods for the attributes
+    specified on the class.
+    """
+
+    _repr_attributes = []
+
+    def __repr__(self):
+        attributes = []
+        for attribute in self._repr_attributes:
+            value = getattr(self, attribute, None)
+            attributes.append('%s=%s' % (attribute, value))
+
+        values = (self.__class__.__name__, ', '.join(attributes))
+        result = '<%s %s>' % values
+        return result
+
+    def __str__(self):
+        return str(self.__repr__())

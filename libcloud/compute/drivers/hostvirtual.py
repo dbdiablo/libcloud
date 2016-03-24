@@ -39,14 +39,12 @@ API_ROOT = ''
 NODE_STATE_MAP = {
     'BUILDING': NodeState.PENDING,
     'PENDING': NodeState.PENDING,
+    'RUNNING': NodeState.RUNNING,  # server is powered up
     'STOPPING': NodeState.REBOOTING,
     'REBOOTING': NodeState.REBOOTING,
     'STARTING': NodeState.REBOOTING,
-    'RUNNING': NodeState.RUNNING,  # server is powered up
     'TERMINATED': NodeState.TERMINATED,  # server is powered down
-    'STOPPED': NodeState.STOPPED,
-    'UP': NodeState.RUNNING,
-    'DOWN': NodeState.STOPPED
+    'STOPPED': NodeState.STOPPED
 }
 
 DEFAULT_NODE_LOCATION_ID = 21
@@ -152,12 +150,8 @@ class HostVirtualNodeDriver(NodeDriver):
             raise HostVirtualException(
                 500, "Name should be a valid FQDN (e.g, hostname.example.com)")
 
-        result = []
-        if 'mbpkgid' in kwargs:
-            result['id'] = kwargs['mbpkgid']
-        else:
-            # simply order a package first
-            pkg = self.ex_order_package(size)
+        # simply order a package first
+        pkg = self.ex_order_package(size)
 
         if 'location' in kwargs:
             dc = kwargs['location'].id
@@ -216,8 +210,12 @@ class HostVirtualNodeDriver(NodeDriver):
             return []
         pkgs = []
         for value in result:
+<<<<<<< HEAD
             pkg = self._to_pkg(value)
             pkgs.append(pkg)
+=======
+            pkgs.append(value)
+>>>>>>> trunk
         return pkgs
 
     def ex_order_package(self, size):
@@ -265,6 +263,7 @@ class HostVirtualNodeDriver(NodeDriver):
         """
 
         params = {'mbpkgid': node.id}
+<<<<<<< HEAD
         result = self.connection.request(
             API_ROOT + '/cloud/unlink', params=params).object
 
@@ -278,6 +277,13 @@ class HostVirtualNodeDriver(NodeDriver):
                                          data=json.dumps(params),
                                          method='POST').object
         return bool(result)
+=======
+        result = self.connection.request(API_ROOT + '/cloud/unlink/',
+                                         data=json.dumps(params),
+                                         method='POST').object
+
+        return result
+>>>>>>> trunk
 
     def ex_get_node(self, node_id):
         """
@@ -389,7 +395,11 @@ class HostVirtualNodeDriver(NodeDriver):
                                              method='POST').object
             return bool(result)
         except HostVirtualException:
+<<<<<<< HEAD
             return False
+=======
+            self.ex_cancel_package(node)
+>>>>>>> trunk
 
     def ex_delete_node(self, node):
         """
