@@ -87,9 +87,9 @@ class HostVirtualNodeDriver(NodeDriver):
         locations = []
         for dc in result:
             locations.append(NodeLocation(
-                dc["id"],
-                dc["name"],
-                dc["name"].split(',')[1].replace(" ", ""),  # country
+                result[dc]["id"],
+                result[dc]["name"],
+                result[dc]["name"].split('-')[1],  # country
                 self))
         return locations
 
@@ -126,11 +126,8 @@ class HostVirtualNodeDriver(NodeDriver):
         return images
 
     def create_node(self, name, image, size, **kwargs):
-        """
-        Creates a node
-
-        Example of node creation with ssh key deployed:
-
+        """Creates a node
+        Example of node creation with ssh key deployed
         >>> from libcloud.compute.base import NodeAuthSSHKey
         >>> key = open('/home/user/.ssh/id_rsa.pub').read()
         >>> auth = NodeAuthSSHKey(pubkey=key)
@@ -142,7 +139,7 @@ class HostVirtualNodeDriver(NodeDriver):
         >>> location = conn.list_locations()[1]
         >>> name = 'markos-dev'
         >>> node = conn.create_node(name, image, size, auth=auth,
-        >>>                         location=location)
+                                    location=location)
         """
 
         dc = None
@@ -213,12 +210,8 @@ class HostVirtualNodeDriver(NodeDriver):
             return []
         pkgs = []
         for value in result:
-<<<<<<< HEAD
             pkg = self._to_pkg(value)
             pkgs.append(pkg)
-=======
-            pkgs.append(value)
->>>>>>> trunk
         return pkgs
 
     def ex_order_package(self, size):
@@ -266,7 +259,6 @@ class HostVirtualNodeDriver(NodeDriver):
         """
 
         params = {'mbpkgid': node.id}
-<<<<<<< HEAD
         result = self.connection.request(
             API_ROOT + '/cloud/unlink', params=params).object
 
@@ -280,13 +272,6 @@ class HostVirtualNodeDriver(NodeDriver):
                                          data=json.dumps(params),
                                          method='POST').object
         return bool(result)
-=======
-        result = self.connection.request(API_ROOT + '/cloud/unlink/',
-                                         data=json.dumps(params),
-                                         method='POST').object
-
-        return result
->>>>>>> trunk
 
     def ex_get_node(self, node_id):
         """
@@ -374,7 +359,7 @@ class HostVirtualNodeDriver(NodeDriver):
             'image': image.id,
             'fqdn': node.name,
             'location': node.extra['location'],
-            'force': force
+            'force': force,
         }
 
         auth = kwargs['auth']
@@ -398,11 +383,7 @@ class HostVirtualNodeDriver(NodeDriver):
                                              method='POST').object
             return bool(result)
         except HostVirtualException:
-<<<<<<< HEAD
             return False
-=======
-            self.ex_cancel_package(node)
->>>>>>> trunk
 
     def ex_delete_node(self, node):
         """
@@ -422,11 +403,10 @@ class HostVirtualNodeDriver(NodeDriver):
         return bool(result)
 
     def _to_pkg(self, data):
+        state = NODE_STATE_MAP['STOPPED']
         if 'state' in data:
-            if data['state'] is None:
-                state = NODE_STATE_MAP['DOWN']
-            else:
-                state = NODE_STATE_MAP[data['state']]
+            if data['state'] is 'UP':
+                state = NODE_STATE_MAP['RUNNING']
         else:
             state = NODE_STATE_MAP['STOPPED']
         public_ips = []
@@ -435,6 +415,8 @@ class HostVirtualNodeDriver(NodeDriver):
 
         if 'plan_id' in data:
             extra['size'] = data['plan_id']
+        if 'installed' in data:
+            extra['installed'] = data['installed']
         if 'name' in data:
             extra['package'] = data['name']
         if 'os_id' in data:
